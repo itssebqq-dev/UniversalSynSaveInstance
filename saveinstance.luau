@@ -4828,7 +4828,12 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 					end
 				end
 			elseif CanRead then
-				raw = instance[PropertyName]
+				local _ok, _r = pcall(index, instance, PropertyName)
+				if _ok then
+					raw = _r
+				else
+					property.CanRead = nil
+				end
 			else
 				local ok, result = pcall(index, instance, PropertyName)
 				if ok then
