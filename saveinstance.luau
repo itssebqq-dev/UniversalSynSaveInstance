@@ -68,6 +68,16 @@ do
 		size: number,
 	}, StreamBufferA))
 
+	local function grow(self, needed)
+		if needed > self.size then
+			local newSize = math.max(needed, self.size * 2 + 64)
+			local newBuf = buffer.create(newSize)
+			buffer.copy(newBuf, 0, self.buf, 0, self.offset)
+			self.buf = newBuf
+			self.size = newSize
+		end
+	end
+
 	function StreamBufferA.new(sizeOrBuffer: number | buffer): StreamBuffer
 		local buf = if type(sizeOrBuffer) == "number"
 			then buffer.create(sizeOrBuffer)
@@ -82,30 +92,26 @@ do
 
 	function StreamBufferA.fill(self: StreamBuffer, value: number, count: number?)
 		local len = count or (self.size - self.offset)
+		grow(self, self.offset + len)
 		buffer.fill(self.buf, self.offset, value, len)
 		self.offset += len
 	end
 
 	function StreamBufferA.allocRegion(self: StreamBuffer, count: number): number
+		grow(self, self.offset + count)
 		local base = self.offset
 		self.offset += count
 		return base
 	end
 
 	function StreamBufferA.pokeu8(self: StreamBuffer, offset: number, value: number)
+		grow(self, offset + 1)
 		buffer.writeu8(self.buf, offset, value)
 	end
 
 	function StreamBufferA.writeLenString(self: StreamBuffer, value: string)
 		local len = #value
-		local needed = self.offset + 4 + len
-		if needed > self.size then
-			local newSize = math.max(needed, self.size * 2)
-			local newBuf = buffer.create(newSize)
-			buffer.copy(newBuf, 0, self.buf, 0, self.offset)
-			self.buf = newBuf
-			self.size = newSize
-		end
+		grow(self, self.offset + 4 + len)
 		buffer.writeu32(self.buf, self.offset, len)
 		self.offset += 4
 		if len > 0 then
@@ -119,47 +125,56 @@ do
 	end
 
 	function StreamBufferA.writeu8(self: StreamBuffer, value: number)
+		grow(self, self.offset + 1)
 		buffer.writeu8(self.buf, self.offset, value)
 		self.offset += 1
 	end
 
 	function StreamBufferA.writeu16(self: StreamBuffer, value: number)
+		grow(self, self.offset + 2)
 		buffer.writeu16(self.buf, self.offset, value)
 		self.offset += 2
 	end
 
 	function StreamBufferA.writeu32(self: StreamBuffer, value: number)
+		grow(self, self.offset + 4)
 		buffer.writeu32(self.buf, self.offset, value)
 		self.offset += 4
 	end
 
 	function StreamBufferA.writei8(self: StreamBuffer, value: number)
+		grow(self, self.offset + 1)
 		buffer.writei8(self.buf, self.offset, value)
 		self.offset += 1
 	end
 
 	function StreamBufferA.writei16(self: StreamBuffer, value: number)
+		grow(self, self.offset + 2)
 		buffer.writei16(self.buf, self.offset, value)
 		self.offset += 2
 	end
 
 	function StreamBufferA.writei32(self: StreamBuffer, value: number)
+		grow(self, self.offset + 4)
 		buffer.writei32(self.buf, self.offset, value)
 		self.offset += 4
 	end
 
 	function StreamBufferA.writef32(self: StreamBuffer, value: number)
+		grow(self, self.offset + 4)
 		buffer.writef32(self.buf, self.offset, value)
 		self.offset += 4
 	end
 
 	function StreamBufferA.writef64(self: StreamBuffer, value: number)
+		grow(self, self.offset + 8)
 		buffer.writef64(self.buf, self.offset, value)
 		self.offset += 8
 	end
 
 	function StreamBufferA.writestring(self: StreamBuffer, value: string, count: number?)
 		local len = count or #value
+		grow(self, self.offset + len)
 		buffer.writestring(self.buf, self.offset, value, len)
 		self.offset += len
 	end
